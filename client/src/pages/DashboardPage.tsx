@@ -127,72 +127,79 @@ export function DashboardPage({ onOpenLesson, onOpenMistakes, onOpenVocab }: Das
 
       {/* Top KPI Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-md">
+        <div className="relative overflow-hidden p-5 rounded-3xl bg-gradient-to-br from-orange-500 via-amber-500 to-rose-500 text-white shadow-xl shadow-orange-500/20">
+          <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-white/15 blur-xl pointer-events-none" />
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-orange-100">Chuỗi ngày học (Streak)</span>
-            <Flame className="w-5 h-5 text-amber-200" />
+            <span className="text-xs font-bold text-orange-100">Chuỗi ngày học</span>
+            <Flame className="w-5 h-5 text-amber-200 fill-amber-200/30" />
           </div>
-          <div className="mt-2 text-3xl font-extrabold">{summary.streak_count} ngày</div>
-          <div className="mt-1 text-xs text-orange-100">
+          <div className="mt-2.5 text-3xl font-display font-extrabold">{summary.streak_count} ngày</div>
+          <div className="mt-1.5 text-xs text-orange-100 font-medium">
             Hôm nay: {summary.today_sentences}/{summary.daily_goal} câu ({dailyPercent}%)
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <div className="p-5 rounded-3xl glass-card border border-slate-200/80 dark:border-white/10 shadow-sm hover:-translate-y-0.5 transition">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
               Độ chính xác TB
             </span>
-            <Target className="w-5 h-5 text-indigo-500" />
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+              <Target className="w-4 h-4 text-indigo-500" />
+            </div>
           </div>
-          <div className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">
+          <div className="mt-2.5 text-3xl font-display font-extrabold text-slate-900 dark:text-white">
             {summary.avg_accuracy}%
           </div>
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          <div className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
             Trên {summary.total_attempted} câu đã luyện
           </div>
         </div>
 
         <div
           onClick={onOpenVocab}
-          className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 transition cursor-pointer"
+          className="p-5 rounded-3xl glass-card border border-slate-200/80 dark:border-white/10 shadow-sm hover:border-emerald-400/70 hover:-translate-y-0.5 transition cursor-pointer"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
               Từ vựng Flashcard
             </span>
-            <BookMarked className="w-5 h-5 text-emerald-500" />
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <BookMarked className="w-4 h-4 text-emerald-500" />
+            </div>
           </div>
-          <div className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">
+          <div className="mt-2.5 text-3xl font-display font-extrabold text-slate-900 dark:text-white">
             {summary.vocab_total} từ
           </div>
-          <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+          <div className="mt-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-bold">
             Đã thuộc: {summary.vocab_mastered} từ
           </div>
         </div>
 
         <div
           onClick={onOpenMistakes}
-          className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-rose-400 transition cursor-pointer"
+          className="p-5 rounded-3xl glass-card border border-slate-200/80 dark:border-white/10 shadow-sm hover:border-rose-400/70 hover:-translate-y-0.5 transition cursor-pointer"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
               Câu cần ôn lại
             </span>
-            <AlertCircle className="w-5 h-5 text-rose-500" />
+            <div className="w-8 h-8 rounded-xl bg-rose-500/10 flex items-center justify-center">
+              <AlertCircle className="w-4 h-4 text-rose-500" />
+            </div>
           </div>
-          <div className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">
+          <div className="mt-2.5 text-3xl font-display font-extrabold text-slate-900 dark:text-white">
             {summary.mistakes_count}
           </div>
-          <div className="mt-1 text-xs text-rose-600 dark:text-rose-400 font-semibold">
-            Nhấn để vào ôn tập ngay →
+          <div className="mt-1.5 text-xs text-rose-600 dark:text-rose-400 font-bold">
+            Nhấn để ôn tập ngay →
           </div>
         </div>
       </div>
 
       {/* 7-Day Activity Chart + Daily Goal Progress */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <div className="lg:col-span-7 p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <div className="lg:col-span-7 p-6 rounded-3xl glass-card border border-slate-200/80 dark:border-white/10 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">

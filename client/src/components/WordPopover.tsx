@@ -87,7 +87,7 @@ export function WordPopover({
   };
 
   return (
-    <div className="mt-3 p-4 rounded-2xl bg-indigo-50/90 dark:bg-slate-800/95 border border-indigo-200 dark:border-indigo-900 shadow-sm">
+    <div className="mt-3 p-4 rounded-2xl bg-gradient-to-br from-indigo-50/95 via-white to-violet-50/90 dark:from-slate-800/95 dark:to-indigo-950/70 border border-indigo-200/90 dark:border-indigo-800/70 shadow-lg shadow-indigo-500/10 animate-pop-in">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5 flex-wrap">
           <span className="text-lg font-bold text-indigo-700 dark:text-indigo-300">

@@ -181,7 +181,7 @@ export function MistakesPage({ onOpenLesson }: MistakesPageProps) {
 
           {/* Right: Active Mistake Drill Panel */}
           {activeMistake && (
-            <div className="lg:col-span-7 p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-xs">
+            <div className="lg:col-span-7 p-6 rounded-3xl glass-card border border-slate-200/80 dark:border-white/10 space-y-4 shadow-md">
               <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">

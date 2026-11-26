@@ -407,15 +407,15 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
   };
 
   return (
-    <div className="rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
+    <div className="rounded-3xl overflow-hidden bg-slate-950 border border-slate-200/80 dark:border-white/10 shadow-2xl shadow-indigo-950/15">
       {/* Media Viewport */}
       {effectiveMode === 'youtube' && youtubeId ? (
         <div className="relative aspect-video bg-black">
           <div ref={ytContainerRef} className="w-full h-full" />
           {!ytReady && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-slate-300 gap-2">
-              <Youtube className="w-10 h-10 text-rose-500 animate-pulse" />
-              <span className="text-sm">Đang tải trình phát Video YouTube...</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 text-slate-300 gap-2.5">
+              <Youtube className="w-11 h-11 text-rose-500 animate-pulse" />
+              <span className="text-xs font-medium">Đang tải trình phát Video YouTube...</span>
             </div>
           )}
         </div>
@@ -433,7 +433,7 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
         </div>
       ) : effectiveMode === 'upload_audio' && mediaUrl ? (
         <div className="relative p-6 bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 text-white flex flex-col items-center justify-center min-h-[210px] gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
+          <div className="w-15 h-15 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center shadow-lg">
             <Headphones className="w-7 h-7 text-indigo-300" />
           </div>
           <audio
@@ -448,7 +448,9 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
         </div>
       ) : (
         /* AI Studio Voice Player */
-        <div className="relative min-h-[220px] p-6 bg-gradient-to-br from-indigo-950 via-slate-900 to-violet-950 text-white flex flex-col items-center justify-center overflow-hidden">
+        <div className="relative min-h-[230px] p-6 bg-gradient-to-br from-indigo-950 via-[#0f172a] to-fuchsia-950 text-white flex flex-col items-center justify-center overflow-hidden">
+          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-indigo-500/25 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-cyan-500/20 blur-3xl pointer-events-none" />
           {thumbnailUrl && (
             <img
               src={thumbnailUrl}
@@ -457,46 +459,46 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
             />
           )}
           <div className="relative z-10 flex flex-col items-center text-center gap-4">
-            <div className="flex items-end gap-1.5 h-12">
-              {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+            <div className="flex items-end gap-1.5 h-14 px-5 py-3 rounded-2xl bg-white/[0.06] border border-white/10 backdrop-blur-md">
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <div
                   key={i}
-                  className={`w-2 rounded-full bg-gradient-to-t from-indigo-400 to-cyan-300 transition-all ${
-                    isPlaying ? 'eq-bar h-11' : 'h-3 opacity-50'
+                  className={`w-1.5 rounded-full bg-gradient-to-t from-indigo-400 via-cyan-300 to-white transition-all ${
+                    isPlaying ? 'eq-bar h-9' : 'h-2.5 opacity-45'
                   }`}
-                  style={{ animationDelay: `${i * 0.12}s` }}
+                  style={{ animationDelay: `${i * 0.1}s` }}
                 />
               ))}
             </div>
             <div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur text-xs font-medium text-indigo-200 border border-white/10">
-                <Volume2 className="w-3.5 h-3.5" />
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/12 backdrop-blur-md text-xs font-bold text-indigo-100 border border-white/15">
+                <Volume2 className="w-3.5 h-3.5 text-cyan-300" />
                 Giọng đọc AI ({accent === 'UK' ? 'Anh - Anh (UK)' : 'Anh - Mỹ (US)'})
                 {speaker ? ` • ${speaker}` : ''}
               </span>
-              <p className="mt-2 text-xs text-slate-300">
-                Nhấn <kbd className="px-1.5 py-0.5 rounded bg-white/15 font-mono">Tab</kbd> hoặc nút bên dưới để nghe lại câu hiện tại
+              <p className="mt-2.5 text-xs text-slate-300/90">
+                Nhấn <kbd className="px-1.5 py-0.5 rounded bg-white/15 font-mono text-[11px]">Tab</kbd> hoặc nút bên dưới để nghe câu hiện tại
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Segment Control Bar */}
-      <div className="px-4 py-3 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3 border-t border-slate-800">
+      {/* Cinema Control Dock */}
+      <div className="px-4 py-3 bg-[#0b1020] text-white flex flex-wrap items-center justify-between gap-2.5 border-t border-white/10">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={togglePlay}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition cursor-pointer shadow-sm"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs sm:text-sm font-bold transition cursor-pointer shadow-md shadow-indigo-600/30 active:scale-95"
           >
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            {isPlaying ? 'Tạm dừng' : 'Nghe câu này'}
+            {isPlaying ? 'Tạm dừng' : 'Phát tiếp'}
           </button>
           <button
             type="button"
             onClick={replaySegment}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-slate-200 text-xs sm:text-sm font-semibold transition cursor-pointer active:scale-95"
             title="Phát lại câu (Phím Tab)"
           >
             <RotateCcw className="w-4 h-4" />
@@ -504,23 +506,23 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
           </button>
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-slate-400">
-          <span className="font-mono bg-slate-800 px-2.5 py-1 rounded-lg text-slate-200">
-            {formatTime(currentTime)} / {formatTime(startTime)}–{formatTime(endTime)}
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <span className="font-mono bg-white/[0.07] border border-white/10 px-2.5 py-1 rounded-lg text-slate-200 text-[11px]">
+            {formatTime(currentTime)} <span className="text-slate-500">/</span> {formatTime(startTime)}–{formatTime(endTime)}
           </span>
           {mediaType === 'youtube' && onToggleForceTTS && (
             <button
               type="button"
               onClick={onToggleForceTTS}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer ${
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
                 forceTTS
                   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  : 'bg-white/[0.08] text-slate-300 hover:bg-white/[0.14]'
               }`}
               title="Chuyển đổi giữa Video YouTube và giọng đọc AI chậm rõ"
             >
               {forceTTS ? <Youtube className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-              {forceTTS ? 'Về Video YouTube' : 'Giọng đọc AI'}
+              {forceTTS ? 'YouTube' : 'Giọng AI'}
             </button>
           )}
         </div>

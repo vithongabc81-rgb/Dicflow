@@ -255,7 +255,7 @@ export function CreateLessonPage({ onCreated }: CreateLessonPageProps) {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Step 1: Media Source */}
-        <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+        <div className="p-6 rounded-3xl glass-card border border-slate-200/80 dark:border-white/10 shadow-sm space-y-5">
           <h2 className="font-bold text-base text-slate-900 dark:text-white">
             1. Chọn nguồn Video / Audio
           </h2>
@@ -466,7 +466,7 @@ export function CreateLessonPage({ onCreated }: CreateLessonPageProps) {
         </div>
 
         {/* Step 2: Subtitles / Transcript */}
-        <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+        <div className="p-6 rounded-3xl glass-card border border-slate-200/80 dark:border-white/10 shadow-sm space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="font-bold text-base text-slate-900 dark:text-white">

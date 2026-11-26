@@ -409,6 +409,7 @@ export const ParrotoDictationInput = forwardRef<ParrotoInputHandle, ParrotoDicta
     }));
 
     const solvedCount = blankIndices.filter((idx) => status[idx] === 'correct').length;
+    const progressPct = blankIndices.length > 0 ? Math.round((solvedCount / blankIndices.length) * 100) : 0;
 
     return (
       <div className="relative space-y-3">
@@ -436,22 +437,31 @@ export const ParrotoDictationInput = forwardRef<ParrotoInputHandle, ParrotoDicta
           className="sr-only"
         />
 
-        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-          <span>
-            Điền vào từng ô trống • Gõ đúng từ tự động chuyển ô (hoặc bấm{' '}
-            <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[11px]">
-              Space
-            </kbd>
-            )
-          </span>
-          <span className="font-bold text-indigo-600 dark:text-indigo-400 shrink-0 ml-2">
-            {solvedCount}/{blankIndices.length} ô đúng
-          </span>
+        {/* Mini Progress Bar for Current Sentence */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <span>
+              Gõ đúng tự động chuyển ô (hoặc nhấn{' '}
+              <kbd className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10 font-mono text-[10px]">
+                Space
+              </kbd>
+              )
+            </span>
+            <span className="font-extrabold text-indigo-600 dark:text-indigo-400 shrink-0 ml-2">
+              {solvedCount}/{blankIndices.length} từ
+            </span>
+          </div>
+          <div className="w-full h-1.5 rounded-full bg-slate-200/70 dark:bg-white/10 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-emerald-400 transition-all duration-300"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
         </div>
 
-        {/* Parroto Word Boxes Container */}
+        {/* Parroto Word Capsules Container */}
         <div
-          className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-x-2 gap-y-3 leading-relaxed"
+          className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-slate-50/90 to-indigo-50/30 dark:from-[#0b1224] dark:to-[#0f172a] border border-slate-200/90 dark:border-white/10 shadow-inner flex flex-wrap items-center gap-x-2 gap-y-3 leading-relaxed"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               const next = blankIndices.find((idx) => status[idx] !== 'correct');
@@ -462,16 +472,15 @@ export const ParrotoDictationInput = forwardRef<ParrotoInputHandle, ParrotoDicta
           {words.map((w) => {
             if (!w.core) {
               return (
-                <span key={w.index} className="text-slate-500 dark:text-slate-400 font-medium">
+                <span key={w.index} className="text-slate-400 dark:text-slate-500 font-medium">
                   {w.leading}
                 </span>
               );
             }
 
-            // Visible given word (in Fill-in-the-Blank mode)
             if (!w.isBlank) {
               return (
-                <span key={w.index} className="inline-flex items-baseline text-base font-medium text-slate-800 dark:text-slate-100">
+                <span key={w.index} className="inline-flex items-baseline text-base font-semibold text-slate-700 dark:text-slate-200">
                   {w.leading}
                   <button
                     type="button"
@@ -489,29 +498,29 @@ export const ParrotoDictationInput = forwardRef<ParrotoInputHandle, ParrotoDicta
             const st = status[w.index] || 'idle';
             const val = values[w.index] || '';
             const isFocused = activeIdx === w.index;
-            const widthCh = Math.max(3.5, Math.min(18, Math.max(w.core.length, val.length) + 1.8));
+            const widthCh = Math.max(3.6, Math.min(18, Math.max(w.core.length, val.length) + 1.8));
 
             if (st === 'correct') {
               return (
-                <span key={w.index} className="inline-flex items-baseline gap-0.5">
-                  {w.leading && <span className="text-slate-500">{w.leading}</span>}
+                <span key={w.index} className="inline-flex items-baseline gap-0.5 animate-pop-in">
+                  {w.leading && <span className="text-slate-400">{w.leading}</span>}
                   <button
                     type="button"
                     onClick={() => onSelectWord(w.core)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 font-bold text-base hover:ring-2 hover:ring-emerald-400 transition cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-gradient-to-b from-emerald-50 to-emerald-100/90 dark:from-emerald-950/90 dark:to-emerald-900/60 border border-emerald-300/90 dark:border-emerald-700/80 text-emerald-800 dark:text-emerald-200 font-bold text-base shadow-xs hover:ring-2 hover:ring-emerald-400 transition cursor-pointer"
                     title="Chính xác! Nhấn để tra & lưu Flashcard"
                   >
                     {w.core}
                     <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   </button>
-                  {w.trailing && <span className="text-slate-600 dark:text-slate-300 font-medium">{w.trailing}</span>}
+                  {w.trailing && <span className="text-slate-500 dark:text-slate-300 font-medium">{w.trailing}</span>}
                 </span>
               );
             }
 
             return (
               <span key={w.index} className="inline-flex items-baseline gap-0.5">
-                {w.leading && <span className="text-slate-500">{w.leading}</span>}
+                {w.leading && <span className="text-slate-400">{w.leading}</span>}
                 <input
                   ref={(el) => {
                     inputRefs.current[w.index] = el;
@@ -527,15 +536,15 @@ export const ParrotoDictationInput = forwardRef<ParrotoInputHandle, ParrotoDicta
                   onKeyDown={(e) => handleKeyDown(w.index, e)}
                   style={{ width: `${widthCh}ch` }}
                   placeholder={'•'.repeat(Math.min(w.core.length, 6))}
-                  className={`px-2.5 py-1 rounded-xl text-center text-base font-semibold transition focus:outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600 placeholder:tracking-widest ${
+                  className={`px-2.5 py-1.5 rounded-xl text-center text-base font-bold transition-all focus:outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600 placeholder:tracking-widest ${
                     st === 'wrong'
-                      ? 'bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-400 dark:border-rose-600 text-rose-700 dark:text-rose-200'
+                      ? 'animate-shake bg-rose-50 dark:bg-rose-950/70 border-2 border-rose-400 dark:border-rose-500 text-rose-700 dark:text-rose-200 shadow-sm shadow-rose-500/15'
                       : isFocused
-                      ? 'bg-white dark:bg-slate-900 border-2 border-indigo-500 ring-2 ring-indigo-500/20 text-slate-900 dark:text-white shadow-xs'
-                      : 'bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white hover:border-indigo-300'
+                      ? 'bg-white dark:bg-slate-900 border-2 border-indigo-500 ring-4 ring-indigo-500/15 text-slate-900 dark:text-white shadow-md shadow-indigo-500/10'
+                      : 'bg-white/95 dark:bg-slate-900/90 border border-slate-300/80 dark:border-white/15 text-slate-900 dark:text-white shadow-xs hover:border-indigo-400'
                   }`}
                 />
-                {w.trailing && <span className="text-slate-600 dark:text-slate-300 font-medium">{w.trailing}</span>}
+                {w.trailing && <span className="text-slate-500 dark:text-slate-300 font-medium">{w.trailing}</span>}
               </span>
             );
           })}

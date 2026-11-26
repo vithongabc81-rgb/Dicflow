@@ -342,15 +342,17 @@ export function VocabPage() {
               }`}
             >
               {/* Front */}
-              <div className="absolute inset-0 backface-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 p-8 text-white shadow-xl flex flex-col items-center justify-center text-center">
-                <span className="text-xs uppercase tracking-widest text-indigo-200 font-semibold mb-3">
+              <div className="absolute inset-0 backface-hidden rounded-[2rem] bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 p-8 text-white shadow-2xl shadow-indigo-500/30 border border-white/15 flex flex-col items-center justify-center text-center overflow-hidden">
+                <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-white/15 blur-2xl pointer-events-none" />
+                <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-cyan-300/20 blur-2xl pointer-events-none" />
+                <span className="relative px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-[11px] uppercase tracking-widest text-indigo-100 font-bold mb-4">
                   {currentCard.part_of_speech || 'TỪ VỰNG'}
                 </span>
-                <div className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                <div className="relative text-3xl sm:text-5xl font-display font-extrabold tracking-tight">
                   {currentCard.word}
                 </div>
                 {currentCard.phonetic && (
-                  <div className="mt-2 font-mono text-indigo-200 text-sm">
+                  <div className="relative mt-2.5 font-mono text-indigo-100/90 text-sm">
                     {currentCard.phonetic}
                   </div>
                 )}
@@ -360,22 +362,22 @@ export function VocabPage() {
                     e.stopPropagation();
                     speakEnglish(currentCard.word, { rate: 0.9 });
                   }}
-                  className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold transition cursor-pointer"
+                  className="relative mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white/18 hover:bg-white/28 backdrop-blur-md text-white text-xs font-bold border border-white/20 transition cursor-pointer active:scale-95"
                 >
                   <Volume2 className="w-4 h-4" /> Nghe phát âm
                 </button>
               </div>
 
               {/* Back */}
-              <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-3xl bg-white dark:bg-slate-900 border-2 border-indigo-400 dark:border-indigo-700 p-8 shadow-xl flex flex-col items-center justify-center text-center">
-                <span className="text-xs uppercase tracking-widest text-indigo-500 font-bold mb-2">
+              <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-[2rem] glass-card border-2 border-indigo-400/70 dark:border-indigo-500/60 p-8 shadow-2xl shadow-indigo-500/15 flex flex-col items-center justify-center text-center">
+                <span className="px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-[11px] uppercase tracking-widest text-indigo-600 dark:text-indigo-300 font-bold mb-3">
                   Nghĩa tiếng Việt
                 </span>
-                <div className="text-2xl font-extrabold text-slate-900 dark:text-white">
+                <div className="text-2xl sm:text-3xl font-display font-extrabold text-slate-900 dark:text-white">
                   {currentCard.meaning_vi}
                 </div>
                 {currentCard.example_en && (
-                  <div className="mt-4 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300 italic max-w-md">
+                  <div className="mt-4 p-4 rounded-2xl bg-slate-100/80 dark:bg-white/[0.05] border border-slate-200/70 dark:border-white/10 text-sm text-slate-600 dark:text-slate-300 italic max-w-md">
                     “{currentCard.example_en}”
                   </div>
                 )}
@@ -385,7 +387,7 @@ export function VocabPage() {
                     e.stopPropagation();
                     speakEnglish(currentCard.example_en || currentCard.word, { rate: 0.95 });
                   }}
-                  className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                  className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                 >
                   <Volume2 className="w-4 h-4" /> Nghe câu ví dụ
                 </button>
@@ -416,7 +418,7 @@ export function VocabPage() {
           {items.map((item) => (
             <div
               key={item.id}
-              className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col justify-between gap-3 hover:border-indigo-300 dark:hover:border-indigo-700 transition"
+              className="p-5 rounded-3xl glass-card border border-slate-200/80 dark:border-white/10 flex flex-col justify-between gap-3 hover:border-indigo-400/70 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/10 transition-all"
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
