@@ -30,6 +30,7 @@ interface MediaPlayerProps {
   loopSegment: boolean;
   forceTTS: boolean;
   onToggleForceTTS?: () => void;
+  onPlayingChange?: (playing: boolean) => void;
 }
 
 let ytApiPromise: Promise<void> | null = null;
@@ -67,6 +68,7 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
     loopSegment,
     forceTTS,
     onToggleForceTTS,
+    onPlayingChange,
   },
   ref
 ) {
@@ -81,6 +83,10 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
   const [isPlaying, setIsPlaying] = useState(false);
   const [ytReady, setYtReady] = useState(false);
   const [currentTime, setCurrentTime] = useState(startTime);
+
+  useEffect(() => {
+    onPlayingChange?.(isPlaying);
+  }, [isPlaying, onPlayingChange]);
 
   const segmentRef = useRef({ startTime, endTime, sentenceText, playbackRate, loopSegment, accent });
   segmentRef.current = { startTime, endTime, sentenceText, playbackRate, loopSegment, accent };

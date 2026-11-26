@@ -9,6 +9,8 @@ import {
   CheckCircle2,
   Repeat,
   RotateCcw,
+  Play,
+  Pause,
   Languages,
   Trophy,
   Sparkles,
@@ -63,6 +65,7 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
   const [playbackRate, setPlaybackRate] = useState(1.0);
   const [loopSegment, setLoopSegment] = useState(false);
   const [forceTTS, setForceTTS] = useState(false);
+  const [isMediaPlaying, setIsMediaPlaying] = useState(false);
 
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [hintToast, setHintToast] = useState('');
@@ -360,6 +363,7 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
             loopSegment={loopSegment}
             forceTTS={forceTTS}
             onToggleForceTTS={() => setForceTTS((v) => !v)}
+            onPlayingChange={setIsMediaPlaying}
           />
 
           {/* Speed & Loop Toolbar */}
@@ -522,12 +526,12 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
             />
 
             {/* Quick Playback & Navigation Bar right underneath the input */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
               <button
                 type="button"
                 disabled={currentIndex === 0}
                 onClick={() => goToSentence(currentIndex - 1, true)}
-                className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold transition disabled:opacity-40 cursor-pointer"
+                className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold transition disabled:opacity-40 cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4 shrink-0" />
                 <span>Câu trước</span>
@@ -535,8 +539,26 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
 
               <button
                 type="button"
+                onClick={() => playerRef.current?.togglePlay()}
+                className={`inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer border ${
+                  isMediaPlaying
+                    ? 'bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                    : 'bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                }`}
+                title={isMediaPlaying ? 'Tạm dừng phát' : 'Phát câu hiện tại'}
+              >
+                {isMediaPlaying ? (
+                  <Pause className="w-4 h-4 shrink-0" />
+                ) : (
+                  <Play className="w-4 h-4 shrink-0" />
+                )}
+                <span>{isMediaPlaying ? 'Tạm dừng' : 'Phát'}</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => playerRef.current?.replaySegment()}
-                className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-sm font-bold transition cursor-pointer"
+                className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs sm:text-sm font-bold transition cursor-pointer"
                 title="Phát lại câu hiện tại (Phím Tab)"
               >
                 <RotateCcw className="w-4 h-4 shrink-0" />
@@ -547,7 +569,7 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
                 type="button"
                 disabled={currentIndex >= sentences.length - 1}
                 onClick={() => goToSentence(currentIndex + 1, true)}
-                className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold transition disabled:opacity-40 cursor-pointer"
+                className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold transition disabled:opacity-40 cursor-pointer"
               >
                 <span>Câu tiếp</span>
                 <ChevronRight className="w-4 h-4 shrink-0" />
