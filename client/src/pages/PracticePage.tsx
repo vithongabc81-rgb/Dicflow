@@ -33,6 +33,11 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { MediaPlayer, type MediaPlayerHandle } from '../components/MediaPlayer';
 import { WordPopover } from '../components/WordPopover';
+import {
+  ParrotoDictationInput,
+  type DictationMode,
+  type ParrotoInputHandle,
+} from '../components/ParrotoDictationInput';
 import type { Lesson, Sentence } from '../types';
 
 interface PracticePageProps {
@@ -47,6 +52,7 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
   const { user, setAuthModalOpen, updateLocalStreak } = useAuth();
   const playerRef = useRef<MediaPlayerHandle | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const parrotoRef = useRef<ParrotoInputHandle | null>(null);
   const activeChipRef = useRef<HTMLButtonElement | null>(null);
   const sentenceStartTs = useRef<number>(Date.now());
 
@@ -66,6 +72,18 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
   const [loopSegment, setLoopSegment] = useState(false);
   const [forceTTS, setForceTTS] = useState(false);
   const [isMediaPlaying, setIsMediaPlaying] = useState(false);
+  const [dictationMode, setDictationMode] = useState<DictationMode>(() => {
+    const saved = localStorage.getItem('dictaflow_mode');
+    if (saved === 'parroto_full' || saved === 'parroto_blanks' || saved === 'free') return saved;
+    return 'parroto_full';
+  });
+
+  const changeDictationMode = (next: DictationMode) => {
+    setDictationMode(next);
+    localStorage.setItem('dictaflow_mode', next);
+    setCheckResult(null);
+    setHintToast('');
+  };
 
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [hintToast, setHintToast] = useState('');
@@ -134,24 +152,20 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
     }, 60);
   };
 
-  const handleCheck = async () => {
+  const recordSentenceScore = async (accuracy: number, inputStr: string) => {
     if (!currentSentence || !lesson) return;
-    const result = evaluateDictation(userInput, currentSentence.text_en);
-    setCheckResult(result);
-
     const elapsedSec = Math.max(5, Math.round((Date.now() - sentenceStartTs.current) / 1000));
-    const isMastered = result.accuracy >= 92;
+    const isMastered = accuracy >= 92;
 
-    // Update local sentence state immediately
     setSentences((prev) =>
       prev.map((s, idx) =>
         idx === currentIndex
           ? {
               ...s,
               attempt: {
-                last_input: userInput,
-                best_accuracy: Math.max(s.attempt?.best_accuracy || 0, result.accuracy),
-                last_accuracy: result.accuracy,
+                last_input: inputStr,
+                best_accuracy: Math.max(s.attempt?.best_accuracy || 0, accuracy),
+                last_accuracy: accuracy,
                 attempts_count: (s.attempt?.attempts_count || 0) + 1,
                 is_mastered: Boolean(s.attempt?.is_mastered || isMastered),
                 needs_review: !isMastered,
@@ -166,8 +180,8 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
         const saved = await api.saveAttempt({
           lesson_id: lesson.id,
           sentence_id: currentSentence.id,
-          user_input: userInput,
-          accuracy: result.accuracy,
+          user_input: inputStr,
+          accuracy,
           duration_sec: elapsedSec,
         });
         if (saved.streak_count) {
@@ -179,8 +193,45 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
     }
   };
 
+  const handleCheck = async () => {
+    if (!currentSentence || !lesson) return;
+
+    if (dictationMode !== 'free' && parrotoRef.current) {
+      const pRes = parrotoRef.current.checkAll();
+      const diff = evaluateDictation(pRes.reconstructedInput, currentSentence.text_en);
+      setCheckResult({
+        ...diff,
+        accuracy: pRes.accuracy,
+        correctCount: pRes.correctCount,
+        totalExpected: pRes.totalBlanks,
+        isPerfect: pRes.isPerfect,
+      });
+      await recordSentenceScore(pRes.accuracy, pRes.reconstructedInput);
+      return;
+    }
+
+    const result = evaluateDictation(userInput, currentSentence.text_en);
+    setCheckResult(result);
+    await recordSentenceScore(result.accuracy, userInput);
+  };
+
+  const handleParrotoAllSolved = async (reconstructedInput: string) => {
+    if (!currentSentence) return;
+    const diff = evaluateDictation(currentSentence.text_en, currentSentence.text_en);
+    setCheckResult({ ...diff, accuracy: 100, isPerfect: true });
+    await recordSentenceScore(100, reconstructedInput);
+  };
+
   const handleHint = () => {
     if (!currentSentence) return;
+    if (dictationMode !== 'free' && parrotoRef.current) {
+      const msg = parrotoRef.current.hintActiveWord();
+      if (msg) {
+        setHintToast(msg);
+        setTimeout(() => setHintToast(''), 2500);
+      }
+      return;
+    }
     const { nextInput, hintedWord } = generateNextHint(userInput, currentSentence.text_en);
     setUserInput(nextInput);
     if (hintedWord) {
@@ -503,27 +554,73 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
 
           {/* Dictation Typing Box */}
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <label className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                Nghe và gõ lại chính xác những gì bạn nghe được:
+                Nghe và điền câu tiếng Anh:
               </label>
-              <span className="text-xs text-slate-400">
-                {currentSentence.text_en.split(/\s+/).length} từ
-              </span>
+
+              {/* Mode Switcher: Parroto Word Boxes / Parroto Fill-in-Blanks / Free Typing */}
+              <div className="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1 text-[11px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => changeDictationMode('parroto_full')}
+                  className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                    dictationMode === 'parroto_full'
+                      ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
+                  }`}
+                >
+                  Điền từng ô
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeDictationMode('parroto_blanks')}
+                  className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                    dictationMode === 'parroto_blanks'
+                      ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
+                  }`}
+                >
+                  Điền khuyết
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeDictationMode('free')}
+                  className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                    dictationMode === 'free'
+                      ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
+                  }`}
+                >
+                  Gõ tự do
+                </button>
+              </div>
             </div>
 
-            <textarea
-              ref={inputRef}
-              rows={3}
-              value={userInput}
-              onChange={(e) => {
-                setUserInput(e.target.value);
-                if (checkResult) setCheckResult(null);
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder="Gõ câu tiếng Anh bạn nghe được... (Nhấn Tab để nghe lại, Enter để kiểm tra)"
-              className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:outline-none text-base font-medium leading-relaxed resize-none transition"
-            />
+            {dictationMode === 'free' ? (
+              <textarea
+                ref={inputRef}
+                rows={3}
+                value={userInput}
+                onChange={(e) => {
+                  setUserInput(e.target.value);
+                  if (checkResult) setCheckResult(null);
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="Gõ câu tiếng Anh bạn nghe được... (Nhấn Tab để nghe lại, Enter để kiểm tra)"
+                className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:outline-none text-base font-medium leading-relaxed resize-none transition"
+              />
+            ) : (
+              <ParrotoDictationInput
+                ref={parrotoRef}
+                sentenceId={currentSentence.id}
+                textEn={currentSentence.text_en}
+                mode={dictationMode}
+                onReplay={() => playerRef.current?.replaySegment()}
+                onSelectWord={(w) => setSelectedWord(w)}
+                onAllSolved={handleParrotoAllSolved}
+              />
+            )}
 
             {/* Quick Playback & Navigation Bar right underneath the input */}
             <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
@@ -599,7 +696,7 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
                   className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-sm font-semibold transition cursor-pointer"
                 >
                   <Lightbulb className="w-4 h-4" />
-                  Gợi ý từ
+                  {dictationMode === 'free' ? 'Gợi ý từ' : 'Gợi ý chữ cái'}
                 </button>
                 <button
                   type="button"
@@ -662,61 +759,65 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
                   )}
                 </div>
 
-                {/* Diff Tokens — Only highlights right/wrong/missing positions without spoiling the answer */}
-                <div className="flex flex-wrap gap-1.5 leading-loose text-base">
-                  {checkResult.tokens.map((tok, i) => {
-                    if (tok.type === 'correct') {
-                      const clean = (tok.expected || '').replace(/[^a-zA-Z'-]/g, '');
-                      return (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => clean && setSelectedWord(clean)}
-                          className="px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200 font-semibold hover:ring-2 hover:ring-emerald-400 cursor-pointer"
-                          title="Từ đúng — Nhấn để tra & lưu Flashcard"
-                        >
-                          {tok.expected}
-                        </button>
-                      );
-                    }
-                    if (tok.type === 'wrong') {
+                {/* Diff Tokens — Shown in Free Typing mode (Parroto modes already highlight each word box inline!) */}
+                {dictationMode === 'free' && (
+                  <div className="flex flex-wrap gap-1.5 leading-loose text-base">
+                    {checkResult.tokens.map((tok, i) => {
+                      if (tok.type === 'correct') {
+                        const clean = (tok.expected || '').replace(/[^a-zA-Z'-]/g, '');
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => clean && setSelectedWord(clean)}
+                            className="px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200 font-semibold hover:ring-2 hover:ring-emerald-400 cursor-pointer"
+                            title="Từ đúng — Nhấn để tra & lưu Flashcard"
+                          >
+                            {tok.expected}
+                          </button>
+                        );
+                      }
+                      if (tok.type === 'wrong') {
+                        return (
+                          <span
+                            key={i}
+                            className="px-1.5 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-semibold"
+                            title="Từ gõ chưa chính xác — Hãy nghe lại và sửa nhé"
+                          >
+                            {tok.actual}
+                          </span>
+                        );
+                      }
+                      if (tok.type === 'missing') {
+                        return (
+                          <span
+                            key={i}
+                            className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-dashed border-amber-400 font-mono text-sm select-none"
+                            title="Còn thiếu 1 từ ở vị trí này"
+                          >
+                            ___
+                          </span>
+                        );
+                      }
                       return (
                         <span
                           key={i}
-                          className="px-1.5 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-semibold"
-                          title="Từ gõ chưa chính xác — Hãy nghe lại và sửa nhé"
+                          className="px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-rose-500 line-through text-sm"
+                          title="Từ bị thừa"
                         >
                           {tok.actual}
                         </span>
                       );
-                    }
-                    if (tok.type === 'missing') {
-                      return (
-                        <span
-                          key={i}
-                          className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-dashed border-amber-400 font-mono text-sm select-none"
-                          title="Còn thiếu 1 từ ở vị trí này"
-                        >
-                          ___
-                        </span>
-                      );
-                    }
-                    return (
-                      <span
-                        key={i}
-                        className="px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-rose-500 line-through text-sm"
-                        title="Từ bị thừa"
-                      >
-                        {tok.actual}
-                      </span>
-                    );
-                  })}
-                </div>
+                    })}
+                  </div>
+                )}
 
-                <p className="mt-2.5 text-[11px] text-slate-500 dark:text-slate-400">
+                <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
                   {checkResult.isPerfect
-                    ? 'Chính xác hoàn toàn! Nhấn vào bất kỳ từ nào để nghe phát âm & lưu vào Flashcard.'
-                    : 'Xanh: đúng • Đỏ: sai/thừa • Ô ___ vàng: còn thiếu từ. Hãy nghe lại để sửa hoặc bấm "Xem đáp án" nếu cần.'}
+                    ? 'Chính xác 100%! Nhấn vào bất kỳ từ màu xanh nào để nghe phát âm & lưu vào Flashcard.'
+                    : dictationMode === 'free'
+                    ? 'Xanh: đúng • Đỏ: sai/thừa • Ô ___ vàng: còn thiếu từ. Hãy nghe lại để sửa hoặc bấm "Xem đáp án" nếu cần.'
+                    : 'Các ô viền đỏ vẫn chưa chính xác (không lộ đáp án). Hãy nghe lại, sửa trực tiếp vào ô hoặc bấm "Gợi ý chữ cái"!'}
                 </p>
               </div>
             )}
