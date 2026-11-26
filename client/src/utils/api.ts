@@ -93,9 +93,11 @@ export const api = {
       duration_sec: number;
       thumbnail_url: string;
       has_captions: boolean;
-      track_language: string;
-      is_auto_generated: boolean;
-      has_vietnamese: boolean;
+      blocked_by_youtube?: boolean;
+      error?: string;
+      track_language?: string;
+      is_auto_generated?: boolean;
+      has_vietnamese?: boolean;
       sentences: { start_time: number; end_time: number; text_en: string; text_vi: string }[];
     }>('/api/lessons/fetch-youtube', {
       method: 'POST',

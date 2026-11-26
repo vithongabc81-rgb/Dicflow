@@ -38,20 +38,7 @@ router.post('/fetch-youtube', requireAuth, async (req, res) => {
       });
     }
     const result = await fetchYouTubeCaptions(videoId);
-    if (!result.has_captions) {
-      return res.status(404).json({
-        error:
-          result.error ||
-          'Video này không có phụ đề trên YouTube. Bạn có thể dán lời thoại hoặc tải file .srt/.vtt.',
-        meta: {
-          videoId: result.videoId,
-          title: result.title,
-          author: result.author,
-          duration_sec: result.duration_sec,
-          thumbnail_url: result.thumbnail_url,
-        },
-      });
-    }
+    // Return 200 even if YouTube cloud IP blocked captions so frontend can auto-fill title/author & show helpful guidance
     return res.json(result);
   } catch (err) {
     console.error('Fetch YouTube captions error:', err);

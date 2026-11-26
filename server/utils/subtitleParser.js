@@ -9,7 +9,7 @@ function extractYouTubeId(input) {
     return trimmed;
   }
   const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    /(?:(?:www\.|m\.)?youtube\.com\/(?:watch\?.*?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
     /[?&]v=([a-zA-Z0-9_-]{11})/,
   ];
   for (const regex of patterns) {
@@ -119,6 +119,61 @@ function parseSubtitles(rawText) {
             ? nextStart
             : +(parsed[i].start_time + 4.5).toFixed(2);
       }
+    }
+    if (parsed.length > 0) return parsed;
+  }
+
+  // 2.5 Try YouTube native copy-paste Transcript format:
+  // "0:12" on one line, followed by text line(s), OR "0:12 Text..." on one line
+  const standaloneTimeRegex = /^(\d{1,2}:\d{2}(?::\d{2})?)$/;
+  const inlineTimeRegex = /^(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+)$/;
+  const standaloneCount = lines.filter((l) => standaloneTimeRegex.test(l)).length;
+  const inlineCount = lines.filter((l) => inlineTimeRegex.test(l)).length;
+
+  if (standaloneCount >= 2 || inlineCount >= 2) {
+    const parsed = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const sm = line.match(standaloneTimeRegex);
+      if (sm) {
+        const start_time = timeStringToSeconds(sm[1]);
+        const textParts = [];
+        while (i + 1 < lines.length && !standaloneTimeRegex.test(lines[i + 1]) && !inlineTimeRegex.test(lines[i + 1])) {
+          textParts.push(lines[i + 1]);
+          i++;
+        }
+        const combined = cleanCaptionText(textParts.join(' '));
+        if (combined) {
+          const parts = combined.split('|').map((p) => p.trim());
+          parsed.push({
+            start_time,
+            end_time: null,
+            text_en: parts[0],
+            text_vi: parts[1] || '',
+          });
+        }
+        continue;
+      }
+      const im = line.match(inlineTimeRegex);
+      if (im) {
+        const start_time = timeStringToSeconds(im[1]);
+        const parts = cleanCaptionText(im[2]).split('|').map((p) => p.trim());
+        if (parts[0]) {
+          parsed.push({
+            start_time,
+            end_time: null,
+            text_en: parts[0],
+            text_vi: parts[1] || '',
+          });
+        }
+      }
+    }
+    for (let i = 0; i < parsed.length; i++) {
+      const nextStart = parsed[i + 1]?.start_time;
+      parsed[i].end_time =
+        nextStart && nextStart > parsed[i].start_time
+          ? +Math.max(parsed[i].start_time + 1, nextStart - 0.05).toFixed(2)
+          : +(parsed[i].start_time + 4.5).toFixed(2);
     }
     if (parsed.length > 0) return parsed;
   }

@@ -41,8 +41,10 @@ Practice for fifteen minutes every day and you will notice steady progress.`;
 function extractYtIdClient(url: string): string | null {
   const m = url
     .trim()
-    .match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/);
+    .match(/(?:(?:www\.|m\.)?youtube\.com\/(?:watch\?.*?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
   if (m) return m[1];
+  const qm = url.trim().match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (qm) return qm[1];
   if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim();
   return null;
 }
@@ -105,14 +107,21 @@ export function CreateLessonPage({ onCreated }: CreateLessonPageProps) {
         setTitle(res.title);
       }
       if (res.author && !description.trim()) {
-        setDescription(`Bài luyện nghe tự động lấy phụ đề từ kênh ${res.author} trên YouTube.`);
+        setDescription(`Bài luyện nghe từ kênh ${res.author} trên YouTube.`);
       }
-      setSentences(res.sentences);
-      setYtFetchInfo(
-        `Đã tự động lấy ${res.sentences.length} câu phụ đề (${
-          res.is_auto_generated ? 'phụ đề tự động YouTube' : 'phụ đề chuẩn CC'
-        }${res.has_vietnamese ? ' + kèm dịch tiếng Việt' : ''})! Bạn có thể kiểm tra, rút gọn hoặc lưu ngay.`
-      );
+      if (res.has_captions && res.sentences.length > 0) {
+        setSentences(res.sentences);
+        setYtFetchInfo(
+          `Đã tự động lấy ${res.sentences.length} câu phụ đề (${
+            res.is_auto_generated ? 'phụ đề tự động YouTube' : 'phụ đề chuẩn CC'
+          }${res.has_vietnamese ? ' + kèm dịch tiếng Việt' : ''})! Bạn có thể kiểm tra, rút gọn hoặc lưu ngay.`
+        );
+      } else {
+        setError(
+          res.error ||
+            'Không lấy được phụ đề tự động từ YouTube. Tiêu đề đã được điền sẵn — bạn hãy copy "Bản chép lời (Transcript)" từ YouTube dán vào ô phụ đề bên dưới nhé!'
+        );
+      }
     } catch (err: any) {
       setError(err.message || 'Không thể tự động lấy phụ đề từ video này.');
     } finally {
@@ -464,7 +473,7 @@ export function CreateLessonPage({ onCreated }: CreateLessonPageProps) {
                 2. Phụ đề & Danh sách câu luyện nghe
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Tải file <code className="font-mono">.srt / .vtt</code>, dán nội dung phụ đề, hoặc nhập mỗi dòng một câu (hỗ trợ <code className="font-mono">Tiếng Anh | Dịch Việt</code>).
+                Tải file <code className="font-mono">.srt / .vtt</code>, dán thẳng <strong>Bản chép lời (Transcript)</strong> copy từ YouTube (<code className="font-mono">0:12</code> + lời thoại), hoặc nhập mỗi dòng một câu (<code className="font-mono">Tiếng Anh | Dịch Việt</code>).
               </p>
             </div>
             <div className="flex items-center gap-2">
