@@ -110,54 +110,96 @@ function formatDateOffset(daysAgo) {
 }
 
 function seedDatabase() {
-  // 1. Seed curated lessons (idempotent by slug)
-  const checkLesson = db.prepare('SELECT id FROM lessons WHERE slug = ?');
+  // 1. Seed or refresh curated lessons inside a single transaction (super fast for 4,000+ sentences)
+  const checkLesson = db.prepare(
+    `SELECT l.id, (SELECT COUNT(*) FROM sentences s WHERE s.lesson_id = l.id) AS sent_count
+     FROM lessons l WHERE l.slug = ?`
+  );
   const insertLesson = db.prepare(`
     INSERT INTO lessons (
       slug, title, description, topic, level, media_type, youtube_id,
       media_url, thumbnail_url, duration_sec, accent, speaker, is_official, user_id
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NULL)
   `);
+  const updateLessonMeta = db.prepare(`
+    UPDATE lessons
+    SET title = ?, description = ?, duration_sec = ?, youtube_id = ?, thumbnail_url = ?, speaker = ?
+    WHERE id = ?
+  `);
+  const deleteLessonSentences = db.prepare('DELETE FROM sentences WHERE lesson_id = ?');
   const insertSentence = db.prepare(`
     INSERT INTO sentences (lesson_id, seq_index, start_time, end_time, text_en, text_vi, keywords_json)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
-  for (const lesson of CURATED_LESSONS) {
-    const existing = checkLesson.get(lesson.slug);
-    if (existing) continue;
+  db.exec('BEGIN;');
+  try {
+    for (const lesson of CURATED_LESSONS) {
+      const thumb =
+        lesson.thumbnail_url ||
+        (lesson.youtube_id ? `https://i.ytimg.com/vi/${lesson.youtube_id}/hqdefault.jpg` : '');
+      const existing = checkLesson.get(lesson.slug);
 
-    const thumb =
-      lesson.thumbnail_url ||
-      (lesson.youtube_id ? `https://i.ytimg.com/vi/${lesson.youtube_id}/hqdefault.jpg` : '');
+      if (existing) {
+        // Refresh sentences if the official lesson was upgraded to full-length captions
+        if (Number(existing.sent_count) !== lesson.sentences.length) {
+          updateLessonMeta.run(
+            lesson.title,
+            lesson.description,
+            lesson.duration_sec || 180,
+            lesson.youtube_id || null,
+            thumb,
+            lesson.speaker || '',
+            existing.id
+          );
+          deleteLessonSentences.run(existing.id);
+          lesson.sentences.forEach((s, idx) => {
+            insertSentence.run(
+              existing.id,
+              idx,
+              s.start_time,
+              s.end_time,
+              s.text_en,
+              s.text_vi || '',
+              JSON.stringify(s.keywords || [])
+            );
+          });
+        }
+        continue;
+      }
 
-    const res = insertLesson.run(
-      lesson.slug,
-      lesson.title,
-      lesson.description,
-      lesson.topic,
-      lesson.level,
-      lesson.media_type,
-      lesson.youtube_id || null,
-      lesson.media_url || null,
-      thumb,
-      lesson.duration_sec || 180,
-      lesson.accent || 'US',
-      lesson.speaker || ''
-    );
-
-    const lessonId = Number(res.lastInsertRowid);
-    lesson.sentences.forEach((s, idx) => {
-      insertSentence.run(
-        lessonId,
-        idx,
-        s.start_time,
-        s.end_time,
-        s.text_en,
-        s.text_vi || '',
-        JSON.stringify(s.keywords || [])
+      const res = insertLesson.run(
+        lesson.slug,
+        lesson.title,
+        lesson.description,
+        lesson.topic,
+        lesson.level,
+        lesson.media_type,
+        lesson.youtube_id || null,
+        lesson.media_url || null,
+        thumb,
+        lesson.duration_sec || 180,
+        lesson.accent || 'US',
+        lesson.speaker || ''
       );
-    });
+
+      const lessonId = Number(res.lastInsertRowid);
+      lesson.sentences.forEach((s, idx) => {
+        insertSentence.run(
+          lessonId,
+          idx,
+          s.start_time,
+          s.end_time,
+          s.text_en,
+          s.text_vi || '',
+          JSON.stringify(s.keywords || [])
+        );
+      });
+    }
+    db.exec('COMMIT;');
+  } catch (err) {
+    db.exec('ROLLBACK;');
+    throw err;
   }
 
   // 2. Seed Demo Account with realistic progress, mistakes & flashcards

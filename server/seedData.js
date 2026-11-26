@@ -821,7 +821,10 @@ const DEMO_VOCAB = [
 
 const EXTRA_LESSONS = require('./extraLessons.json');
 
+// Keep only non-YouTube AI Studio lessons inline since all 24 full-length YouTube lessons are in extraLessons.json
+const AUDIO_STUDIO_LESSONS = CURATED_LESSONS.filter((l) => l.media_type !== 'youtube');
+
 module.exports = {
-  CURATED_LESSONS: [...CURATED_LESSONS, ...EXTRA_LESSONS],
+  CURATED_LESSONS: [...EXTRA_LESSONS, ...AUDIO_STUDIO_LESSONS],
   DEMO_VOCAB,
 };

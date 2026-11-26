@@ -44,6 +44,7 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
   const { user, setAuthModalOpen, updateLocalStreak } = useAuth();
   const playerRef = useRef<MediaPlayerHandle | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const activeChipRef = useRef<HTMLButtonElement | null>(null);
   const sentenceStartTs = useRef<number>(Date.now());
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -97,6 +98,15 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
   }, [lessonId, user?.id]);
 
   const currentSentence = sentences[currentIndex] || null;
+
+  // Keep active sentence pill scrolled into view in the horizontal navigator
+  useEffect(() => {
+    activeChipRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      inline: 'center',
+      block: 'nearest',
+    });
+  }, [currentIndex]);
 
   const goToSentence = (idx: number, autoPlay = false) => {
     if (idx < 0 || idx >= sentences.length) return;
@@ -410,12 +420,27 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
 
         {/* Right: Dictation Workspace */}
         <div className="lg:col-span-7 space-y-4">
-          {/* Sentence Navigator Strip */}
-          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-bold text-slate-900 dark:text-white">
-                Câu {currentIndex + 1} / {sentences.length}
-              </span>
+          {/* Sentence Navigator Strip (scales smoothly to 300+ sentences) */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="text-sm font-bold text-slate-900 dark:text-white">
+                  Câu {currentIndex + 1} / {sentences.length}
+                </span>
+                <select
+                  value={currentIndex}
+                  onChange={(e) => goToSentence(Number(e.target.value), false)}
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer"
+                  aria-label="Chuyển nhanh tới câu"
+                >
+                  {sentences.map((s, idx) => (
+                    <option key={s.id} value={idx}>
+                      Câu {idx + 1} ({formatTime(s.start_time)})
+                      {s.attempt?.is_mastered ? ' ✓' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
@@ -436,7 +461,8 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
+            {/* Compact horizontal scrollable sentence pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5">
               {sentences.map((s, idx) => {
                 const isCurrent = idx === currentIndex;
                 const mastered = s.attempt?.is_mastered;
@@ -444,11 +470,12 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
                 return (
                   <button
                     key={s.id}
+                    ref={isCurrent ? activeChipRef : null}
                     type="button"
                     onClick={() => goToSentence(idx, false)}
-                    className={`w-8 h-8 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    className={`shrink-0 min-w-8 h-8 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
                       isCurrent
-                        ? 'bg-indigo-600 text-white ring-2 ring-indigo-400 ring-offset-2 dark:ring-offset-slate-900'
+                        ? 'bg-indigo-600 text-white ring-2 ring-indigo-400 ring-offset-1 dark:ring-offset-slate-900'
                         : mastered
                         ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
                         : needsReview
