@@ -11,6 +11,7 @@ declare global {
 
 export interface MediaPlayerHandle {
   replaySegment: () => void;
+  playSegment: (start: number, end: number, text?: string) => void;
   togglePlay: () => void;
   stop: () => void;
 }
@@ -75,6 +76,7 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
   const ytPlayerRef = useRef<any>(null);
   const ytReadyRef = useRef(false);
   const htmlMediaRef = useRef<HTMLVideoElement | HTMLAudioElement | null>(null);
+  const seekLockUntilRef = useRef<number>(0);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [ytReady, setYtReady] = useState(false);
@@ -130,6 +132,19 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
             if (cancelled) return;
             if (e.data === window.YT?.PlayerState?.PLAYING) {
               setIsPlaying(true);
+              // If user clicked YouTube's built-in Play button while playhead was on an old sentence, snap to current sentence!
+              if (Date.now() > seekLockUntilRef.current && typeof e.target.getCurrentTime === 'function') {
+                const now = e.target.getCurrentTime();
+                const { startTime: s, endTime: end } = segmentRef.current;
+                if (now < s - 0.8 || now > end - 0.15) {
+                  seekLockUntilRef.current = Date.now() + 600;
+                  try {
+                    e.target.seekTo(s, true);
+                  } catch {
+                    // ignore
+                  }
+                }
+              }
             } else if (
               e.data === window.YT?.PlayerState?.PAUSED ||
               e.data === window.YT?.PlayerState?.ENDED
@@ -175,11 +190,13 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
       const player = ytPlayerRef.current;
       if (!player || !ytReadyRef.current || typeof player.getCurrentTime !== 'function') return;
       if (player.getPlayerState?.() !== window.YT?.PlayerState?.PLAYING) return;
+      if (Date.now() < seekLockUntilRef.current) return;
       const now = player.getCurrentTime();
       setCurrentTime(now);
       const { startTime: s, endTime: e, loopSegment: loop } = segmentRef.current;
       if (now >= e - 0.08) {
         if (loop) {
+          seekLockUntilRef.current = Date.now() + 500;
           player.seekTo(s, true);
         } else {
           player.pauseVideo();
@@ -190,11 +207,22 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
     return () => window.clearInterval(timer);
   }, [effectiveMode]);
 
-  // Stop speech when unmounting or switching sentence
+  // Sync playhead cleanly when sentence changes without breaking active playback started via playSegment()
   useEffect(() => {
     setCurrentTime(startTime);
+    if (Date.now() < seekLockUntilRef.current) {
+      return () => {};
+    }
     stopSpeaking();
-    setIsPlaying(false);
+    if (effectiveMode === 'youtube' && ytPlayerRef.current && ytReadyRef.current) {
+      try {
+        ytPlayerRef.current.seekTo(startTime, true);
+      } catch {
+        // ignore
+      }
+    } else if (htmlMediaRef.current) {
+      htmlMediaRef.current.currentTime = startTime;
+    }
     return () => {
       stopSpeaking();
     };
@@ -220,8 +248,17 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
     });
   };
 
-  const replaySegment = () => {
-    const { startTime: s, playbackRate: rate } = segmentRef.current;
+  const playSegment = (targetStart: number, targetEnd: number, targetText?: string) => {
+    segmentRef.current = {
+      ...segmentRef.current,
+      startTime: targetStart,
+      endTime: targetEnd,
+      sentenceText: targetText !== undefined ? targetText : segmentRef.current.sentenceText,
+    };
+    setCurrentTime(targetStart);
+    seekLockUntilRef.current = Date.now() + 650;
+
+    const { playbackRate: rate } = segmentRef.current;
     if (effectiveMode === 'audio_tts') {
       playTTSLoop();
       return;
@@ -231,7 +268,7 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
       if (p && ytReadyRef.current) {
         try {
           p.setPlaybackRate(rate);
-          p.seekTo(s, true);
+          p.seekTo(targetStart, true);
           p.playVideo();
           setIsPlaying(true);
         } catch {
@@ -243,9 +280,14 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
     const el = htmlMediaRef.current;
     if (el) {
       el.playbackRate = rate;
-      el.currentTime = s;
+      el.currentTime = targetStart;
       el.play().then(() => setIsPlaying(true)).catch(() => {});
     }
+  };
+
+  const replaySegment = () => {
+    const { startTime: s, endTime: e, sentenceText: txt } = segmentRef.current;
+    playSegment(s, e, txt);
   };
 
   const stop = () => {
@@ -273,6 +315,7 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
 
   useImperativeHandle(ref, () => ({
     replaySegment,
+    playSegment,
     togglePlay,
     stop,
   }));

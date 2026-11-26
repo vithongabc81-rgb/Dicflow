@@ -108,20 +108,26 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
     });
   }, [currentIndex]);
 
-  const goToSentence = (idx: number, autoPlay = false) => {
+  const goToSentence = (idx: number, autoPlay = true) => {
     if (idx < 0 || idx >= sentences.length) return;
-    playerRef.current?.stop();
+    const target = sentences[idx];
     setCurrentIndex(idx);
-    setUserInput(sentences[idx]?.attempt?.is_mastered ? sentences[idx].text_en : '');
+    setUserInput(target?.attempt?.is_mastered ? target.text_en : '');
     setCheckResult(null);
     setShowAnswer(false);
     setSelectedWord(null);
     setHintToast('');
     sentenceStartTs.current = Date.now();
+
+    if (autoPlay && target) {
+      // Call synchronously inside click handler so mobile browsers allow immediate seek & play!
+      playerRef.current?.playSegment(target.start_time, target.end_time, target.text_en);
+    } else {
+      playerRef.current?.stop();
+    }
     setTimeout(() => {
       inputRef.current?.focus();
-      if (autoPlay) playerRef.current?.replaySegment();
-    }, 80);
+    }, 60);
   };
 
   const handleCheck = async () => {
@@ -429,7 +435,7 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
                 </span>
                 <select
                   value={currentIndex}
-                  onChange={(e) => goToSentence(Number(e.target.value), false)}
+                  onChange={(e) => goToSentence(Number(e.target.value), true)}
                   className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer"
                   aria-label="Chuyển nhanh tới câu"
                 >
@@ -472,7 +478,7 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
                     key={s.id}
                     ref={isCurrent ? activeChipRef : null}
                     type="button"
-                    onClick={() => goToSentence(idx, false)}
+                    onClick={() => goToSentence(idx, true)}
                     className={`shrink-0 min-w-8 h-8 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
                       isCurrent
                         ? 'bg-indigo-600 text-white ring-2 ring-indigo-400 ring-offset-1 dark:ring-offset-slate-900'
