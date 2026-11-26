@@ -8,6 +8,7 @@ import {
   EyeOff,
   CheckCircle2,
   Repeat,
+  RotateCcw,
   Languages,
   Trophy,
   Sparkles,
@@ -519,6 +520,39 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
               placeholder="Gõ câu tiếng Anh bạn nghe được... (Nhấn Tab để nghe lại, Enter để kiểm tra)"
               className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:outline-none text-base font-medium leading-relaxed resize-none transition"
             />
+
+            {/* Quick Playback & Navigation Bar right underneath the input */}
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                disabled={currentIndex === 0}
+                onClick={() => goToSentence(currentIndex - 1, true)}
+                className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold transition disabled:opacity-40 cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4 shrink-0" />
+                <span>Câu trước</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => playerRef.current?.replaySegment()}
+                className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-sm font-bold transition cursor-pointer"
+                title="Phát lại câu hiện tại (Phím Tab)"
+              >
+                <RotateCcw className="w-4 h-4 shrink-0" />
+                <span>Lặp lại</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={currentIndex >= sentences.length - 1}
+                onClick={() => goToSentence(currentIndex + 1, true)}
+                className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold transition disabled:opacity-40 cursor-pointer"
+              >
+                <span>Câu tiếp</span>
+                <ChevronRight className="w-4 h-4 shrink-0" />
+              </button>
+            </div>
 
             {hintToast && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-medium">
