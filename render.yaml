@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: dictaflow
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+    # Nếu nâng cấp lên gói Starter trở lên để giữ vĩnh viễn database SQLite & file upload:
+    #   - key: DATA_DIR
+    #     value: /var/data
+    # disk:
+    #   name: dictaflow-data
+    #   mountPath: /var/data
+    #   sizeGB: 1

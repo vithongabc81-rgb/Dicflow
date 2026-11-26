@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+client/dist
+server/dictation.db
+server/dictation.db-shm
+server/dictation.db-wal
+server/uploads/*
+!server/uploads/.gitkeep
+.git
+.gitignore
+*.log
+.env
