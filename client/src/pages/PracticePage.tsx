@@ -619,6 +619,11 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
                 onReplay={() => playerRef.current?.replaySegment()}
                 onSelectWord={(w) => setSelectedWord(w)}
                 onAllSolved={handleParrotoAllSolved}
+                onRequestNextSentence={() => {
+                  if (currentIndex < sentences.length - 1) {
+                    goToSentence(currentIndex + 1, true);
+                  }
+                }}
               />
             )}
 
@@ -627,6 +632,7 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
               <button
                 type="button"
                 disabled={currentIndex === 0}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => goToSentence(currentIndex - 1, true)}
                 className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold transition disabled:opacity-40 cursor-pointer"
               >
@@ -636,6 +642,7 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
 
               <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => playerRef.current?.togglePlay()}
                 className={`inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer border ${
                   isMediaPlaying
@@ -654,6 +661,7 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
 
               <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => playerRef.current?.replaySegment()}
                 className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs sm:text-sm font-bold transition cursor-pointer"
                 title="Phát lại câu hiện tại (Phím Tab)"
@@ -665,6 +673,7 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
               <button
                 type="button"
                 disabled={currentIndex >= sentences.length - 1}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => goToSentence(currentIndex + 1, true)}
                 className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold transition disabled:opacity-40 cursor-pointer"
               >
@@ -751,6 +760,7 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
                   {checkResult.accuracy >= 92 && currentIndex < sentences.length - 1 && (
                     <button
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => goToSentence(currentIndex + 1, true)}
                       className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition cursor-pointer"
                     >

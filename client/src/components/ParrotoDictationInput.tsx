@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { Check } from 'lucide-react';
 
 export type DictationMode = 'parroto_full' | 'parroto_blanks' | 'free';
@@ -94,12 +94,12 @@ interface ParrotoDictationInputProps {
   onReplay: () => void;
   onSelectWord: (word: string) => void;
   onAllSolved: (reconstructedInput: string) => void;
-  onHintUsed?: () => void;
+  onRequestNextSentence?: () => void;
 }
 
 export const ParrotoDictationInput = forwardRef<ParrotoInputHandle, ParrotoDictationInputProps>(
   function ParrotoDictationInput(
-    { sentenceId, textEn, mode, onReplay, onSelectWord, onAllSolved },
+    { sentenceId, textEn, mode, onReplay, onSelectWord, onAllSolved, onRequestNextSentence },
     ref
   ) {
     const words = useMemo(
@@ -115,18 +115,26 @@ export const ParrotoDictationInput = forwardRef<ParrotoInputHandle, ParrotoDicta
     const [status, setStatus] = useState<Record<number, 'idle' | 'correct' | 'wrong'>>({});
     const [activeIdx, setActiveIdx] = useState<number>(blankIndices[0] ?? -1);
     const inputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+    const keeperRef = useRef<HTMLInputElement | null>(null);
     const solvedTriggeredRef = useRef(false);
 
-    // Reset whenever sentence or mode changes
-    useEffect(() => {
+    // Reset & immediately focus first blank synchronously in layout effect so mobile keyboard stays open!
+    useLayoutEffect(() => {
       setValues({});
       setStatus({});
       solvedTriggeredRef.current = false;
       const first = blankIndices[0] ?? -1;
       setActiveIdx(first);
-      setTimeout(() => {
-        if (first >= 0) inputRefs.current[first]?.focus();
-      }, 60);
+      if (first >= 0) {
+        const el = inputRefs.current[first];
+        if (el) {
+          el.focus({ preventScroll: true });
+        } else {
+          requestAnimationFrame(() => {
+            inputRefs.current[first]?.focus({ preventScroll: true });
+          });
+        }
+      }
     }, [sentenceId, mode, blankIndices]);
 
     const buildReconstructed = (vals: Record<number, string>) => {
@@ -143,13 +151,23 @@ export const ParrotoDictationInput = forwardRef<ParrotoInputHandle, ParrotoDicta
 
     const focusBlank = (wordIdx: number) => {
       setActiveIdx(wordIdx);
-      setTimeout(() => {
-        const el = inputRefs.current[wordIdx];
-        if (el) {
-          el.focus();
+      const el = inputRefs.current[wordIdx];
+      if (el) {
+        // Synchronous focus inside user input event keeps iOS/Android virtual keyboard open!
+        el.focus({ preventScroll: true });
+        try {
           el.setSelectionRange(el.value.length, el.value.length);
+        } catch {
+          // ignore
         }
-      }, 10);
+      } else {
+        requestAnimationFrame(() => {
+          const delayed = inputRefs.current[wordIdx];
+          if (delayed) {
+            delayed.focus({ preventScroll: true });
+          }
+        });
+      }
     };
 
     const findNextUnsolvedBlank = (fromWordIdx: number, nextStatus: Record<number, 'idle' | 'correct' | 'wrong'>) => {
@@ -171,6 +189,8 @@ export const ParrotoDictationInput = forwardRef<ParrotoInputHandle, ParrotoDicta
       const allCorrect = blankIndices.every((idx) => nextStatus[idx] === 'correct');
       if (allCorrect) {
         solvedTriggeredRef.current = true;
+        // Transfer focus synchronously to hidden focus-keeper input so mobile virtual keyboard does NOT dismiss!
+        keeperRef.current?.focus({ preventScroll: true });
         onAllSolved(buildReconstructed(nextVals));
       }
     };
@@ -391,7 +411,31 @@ export const ParrotoDictationInput = forwardRef<ParrotoInputHandle, ParrotoDicta
     const solvedCount = blankIndices.filter((idx) => status[idx] === 'correct').length;
 
     return (
-      <div className="space-y-3">
+      <div className="relative space-y-3">
+        {/* Invisible focus-keeper input: keeps mobile virtual keyboard open when the last word box locks into a completed chip */}
+        <input
+          ref={keeperRef}
+          type="text"
+          value=""
+          aria-hidden="true"
+          tabIndex={-1}
+          autoCapitalize="off"
+          autoCorrect="off"
+          autoComplete="off"
+          spellCheck={false}
+          onChange={() => {}}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onRequestNextSentence?.();
+            } else if (e.key === 'Tab') {
+              e.preventDefault();
+              onReplay();
+            }
+          }}
+          className="sr-only"
+        />
+
         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <span>
             Điền vào từng ô trống • Gõ đúng từ tự động chuyển ô (hoặc bấm{' '}
