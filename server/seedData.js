@@ -819,7 +819,9 @@ const DEMO_VOCAB = [
   },
 ];
 
+const EXTRA_LESSONS = require('./extraLessons.json');
+
 module.exports = {
-  CURATED_LESSONS,
+  CURATED_LESSONS: [...CURATED_LESSONS, ...EXTRA_LESSONS],
   DEMO_VOCAB,
 };
