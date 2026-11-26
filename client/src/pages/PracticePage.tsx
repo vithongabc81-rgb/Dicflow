@@ -662,7 +662,7 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
                   )}
                 </div>
 
-                {/* Diff Tokens — Clickable to look up / save vocab */}
+                {/* Diff Tokens — Only highlights right/wrong/missing positions without spoiling the answer */}
                 <div className="flex flex-wrap gap-1.5 leading-loose text-base">
                   {checkResult.tokens.map((tok, i) => {
                     if (tok.type === 'correct') {
@@ -680,45 +680,32 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
                       );
                     }
                     if (tok.type === 'wrong') {
-                      const clean = (tok.expected || '').replace(/[^a-zA-Z'-]/g, '');
                       return (
                         <span
                           key={i}
-                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-800"
+                          className="px-1.5 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-semibold"
+                          title="Từ gõ chưa chính xác — Hãy nghe lại và sửa nhé"
                         >
-                          <span className="line-through text-rose-600 dark:text-rose-400 text-sm">
-                            {tok.actual}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => clean && setSelectedWord(clean)}
-                            className="text-emerald-700 dark:text-emerald-300 font-bold hover:underline cursor-pointer"
-                            title="Đáp án đúng — Nhấn để lưu từ vựng"
-                          >
-                            {tok.expected}
-                          </button>
+                          {tok.actual}
                         </span>
                       );
                     }
                     if (tok.type === 'missing') {
-                      const clean = (tok.expected || '').replace(/[^a-zA-Z'-]/g, '');
                       return (
-                        <button
+                        <span
                           key={i}
-                          type="button"
-                          onClick={() => clean && setSelectedWord(clean)}
-                          className="px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-200 border border-dashed border-amber-400 font-semibold cursor-pointer"
-                          title="Từ bị thiếu — Nhấn để tra & lưu từ vựng"
+                          className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-dashed border-amber-400 font-mono text-sm select-none"
+                          title="Còn thiếu 1 từ ở vị trí này"
                         >
-                          {tok.expected}
-                        </button>
+                          ___
+                        </span>
                       );
                     }
                     return (
                       <span
                         key={i}
                         className="px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-rose-500 line-through text-sm"
-                        title="Từ dư"
+                        title="Từ bị thừa"
                       >
                         {tok.actual}
                       </span>
@@ -727,7 +714,9 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
                 </div>
 
                 <p className="mt-2.5 text-[11px] text-slate-500 dark:text-slate-400">
-                  Mẹo: Nhấn trực tiếp vào bất kỳ từ tiếng Anh nào ở trên để nghe phát âm, xem nghĩa và lưu vào sổ Flashcard!
+                  {checkResult.isPerfect
+                    ? 'Chính xác hoàn toàn! Nhấn vào bất kỳ từ nào để nghe phát âm & lưu vào Flashcard.'
+                    : 'Xanh: đúng • Đỏ: sai/thừa • Ô ___ vàng: còn thiếu từ. Hãy nghe lại để sửa hoặc bấm "Xem đáp án" nếu cần.'}
                 </p>
               </div>
             )}

@@ -275,13 +275,17 @@ export function MistakesPage({ onOpenLesson }: MistakesPageProps) {
                           tok.type === 'correct'
                             ? 'px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200 font-semibold'
                             : tok.type === 'missing'
-                            ? 'px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-dashed border-amber-400 font-semibold'
-                            : 'px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300'
+                            ? 'px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-dashed border-amber-400 font-mono'
+                            : tok.type === 'extra'
+                            ? 'px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-rose-500 line-through'
+                            : 'px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 font-semibold'
                         }
                       >
-                        {tok.type === 'wrong'
-                          ? `${tok.actual} → ${tok.expected}`
-                          : tok.expected || tok.actual}
+                        {tok.type === 'missing'
+                          ? '___'
+                          : tok.type === 'correct'
+                          ? tok.expected
+                          : tok.actual}
                       </span>
                     ))}
                   </div>
