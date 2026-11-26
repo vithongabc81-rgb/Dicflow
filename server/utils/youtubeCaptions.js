@@ -19,13 +19,50 @@ function decodeHtmlEntities(str) {
 }
 
 function cleanSpeechText(text) {
-  return decodeHtmlEntities(text)
-    .replace(/\[[^\]]*\]/g, '') // remove [Music], [Applause], [Laughter]
-    .replace(/\([^)]*(?:music|applause|laughter|cheering|sighs|inaudible)[^)]*\)/gi, '')
-    .replace(/♪[^♪]*♪/g, '')
-    .replace(/♪/g, '')
+  let cleaned = decodeHtmlEntities(text);
+
+  // Drop pure translator/transcriber/reviewer credit lines (silent TED intro/outro screens!)
+  if (
+    /^\s*(?:transcrib(?:er|ed)|translat(?:or|ed)|review(?:er|ed)|subtitles?\s+by|captions?\s+by|edited\s+by)\b/i.test(
+      cleaned
+    ) ||
+    /\b(?:transcriber|translator)\s*:/i.test(cleaned) ||
+    /\breviewer\s*:/i.test(cleaned) ||
+    /\b(?:ted\.com|amara\.org|https?:\/\/|www\.)/i.test(cleaned)
+  ) {
+    return '';
+  }
+
+  // Drop pure musical lines (contains music notes without real spoken sentence)
+  if (/[♪♫]/.test(cleaned)) {
+    cleaned = cleaned.replace(/[♪♫][^♪♫]*[♪♫]/g, '').replace(/[♪♫]/g, '');
+  }
+
+  cleaned = cleaned
+    // Strip [Music], [Applause], [Laughter], etc.
+    .replace(/\[[^\]]*\]/g, '')
+    // Strip parenthetical stage directions & non-speech cues: (Sigh), (Exhales), (Higher pitch), (Loud), (Video), (Singing), (Audience counting), etc.
+    .replace(
+      /\(\s*(?:music|applause|laughter|laughs?|chuckles?|cheering|cheers|sighs?|exhales?|inhales?|whistles?|singing|sings?|video|audio|higher pitch|lower pitch|loud|softly|whispering|audience[^)]*|speaking[^)]*|inaudible|crosstalk|groans?|clapping|bell rings?|phone rings?|snaps?|coughs?|clears throat|gasp[s]?|silence|pause)\s*\)/gi,
+      ''
+    )
+    // Strip leading speaker labels like "Narrator: " or "Host: " or ">> "
+    .replace(/^\s*>>\s*/g, '')
+    .replace(/^\s*[A-Z][a-zA-Z]{1,14}:\s+/, '')
+    // Normalize double dashes "--" to clean em-dash " — "
+    .replace(/\s*--\s*/g, ' — ')
+    // Remove leading/trailing stray dashes
+    .replace(/^\s*[—–-]+\s*/, '')
+    .replace(/\s*[—–-]+\s*$/, '')
     .replace(/\s+/g, ' ')
     .trim();
+
+  // Must contain at least 2 alphanumeric characters to be a valid spoken caption
+  if (cleaned.replace(/[^a-zA-Z0-9]/g, '').length < 2) {
+    return '';
+  }
+
+  return cleaned;
 }
 
 function parseJson3Events(json3) {
@@ -162,7 +199,44 @@ function mergeCuesIntoSentences(rawCues) {
   }
   flush();
 
-  return merged;
+  // Post-pass: merge dangling ultra-short fragments (<=2 words without terminal punctuation, or tiny <=2 word stubs) into neighbors when gap is small
+  const refined = [];
+  for (let i = 0; i < merged.length; i++) {
+    const cur = merged[i];
+    const wordCount = cur.text_en.split(/\s+/).filter(Boolean).length;
+    const prev = refined[refined.length - 1];
+    const next = merged[i + 1];
+
+    // If cur is a tiny incomplete clause (<=2 words, no .?!) and next is close (< 1.5s), prepend cur to next
+    if (
+      wordCount <= 2 &&
+      !/[.!?]["']?$/.test(cur.text_en) &&
+      next &&
+      next.start_time - cur.end_time < 1.5 &&
+      next.end_time - cur.start_time <= 11
+    ) {
+      next.start_time = cur.start_time;
+      next.text_en = `${cur.text_en} ${next.text_en.charAt(0).toLowerCase() + next.text_en.slice(1)}`.replace(/\s+/g, ' ').trim();
+      continue;
+    }
+
+    // If cur is a tiny stub (<=2 words) right after prev (< 1.0s) and prev didn't finish a sentence, append to prev
+    if (
+      wordCount <= 2 &&
+      prev &&
+      !/[.!?]["']?$/.test(prev.text_en) &&
+      cur.start_time - prev.end_time < 1.0 &&
+      cur.end_time - prev.start_time <= 11
+    ) {
+      prev.end_time = cur.end_time;
+      prev.text_en = `${prev.text_en} ${cur.text_en.charAt(0).toLowerCase() + cur.text_en.slice(1)}`.replace(/\s+/g, ' ').trim();
+      continue;
+    }
+
+    refined.push(cur);
+  }
+
+  return refined;
 }
 
 async function fetchOEmbedMeta(videoId) {

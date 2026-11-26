@@ -4,14 +4,18 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+function formatVietnamDate(dateObj) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(dateObj);
+}
+
 function getTodayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return formatVietnamDate(new Date());
 }
 
 function getDateOffsetStr(daysAgo) {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
-  return d.toISOString().slice(0, 10);
+  return formatVietnamDate(d);
 }
 
 function updateUserStreak(userId) {

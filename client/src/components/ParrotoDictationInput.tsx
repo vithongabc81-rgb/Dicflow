@@ -40,12 +40,14 @@ function normalizeCore(word: string): string {
 
 function parseSentenceToWords(text: string, sentenceId: number, mode: DictationMode): ParsedWord[] {
   const rawTokens = text
+    .replace(/\s*--\s*/g, ' — ')
     .replace(/[—–]/g, ' — ')
     .split(/\s+/)
     .filter(Boolean);
 
   const parsed: ParsedWord[] = rawTokens.map((raw, index) => {
-    const match = raw.match(/^([^a-zA-Z0-9']*)([a-zA-Z0-9'-]+?)([^a-zA-Z0-9']*)$/);
+    // Handles contractions (don't), hyphenated words (30-day), abbreviations (a.m., L.A.), and decimals cleanly
+    const match = raw.match(/^([^a-zA-Z0-9]*)([a-zA-Z0-9](?:[a-zA-Z0-9'’.-]*[a-zA-Z0-9])?)([^a-zA-Z0-9]*)$/);
     if (!match) {
       return { index, leading: raw, core: '', trailing: '', norm: '', isBlank: false };
     }
@@ -63,7 +65,10 @@ function parseSentenceToWords(text: string, sentenceId: number, mode: DictationM
 
   if (mode === 'parroto_blanks') {
     const wordIndices = parsed.filter((w) => w.isBlank).map((w) => w.index);
-    const targetBlankCount = Math.max(2, Math.round(wordIndices.length * 0.45));
+    const targetBlankCount = Math.min(
+      wordIndices.length,
+      Math.max(1, Math.round(wordIndices.length * 0.45))
+    );
 
     // Score words: prefer longer, meaningful content words, deterministic per sentence
     const scored = wordIndices.map((idx) => {
@@ -95,11 +100,23 @@ interface ParrotoDictationInputProps {
   onSelectWord: (word: string) => void;
   onAllSolved: (reconstructedInput: string) => void;
   onRequestNextSentence?: () => void;
+  onRequestHint?: () => void;
+  onToggleShowAnswer?: () => void;
 }
 
 export const ParrotoDictationInput = forwardRef<ParrotoInputHandle, ParrotoDictationInputProps>(
   function ParrotoDictationInput(
-    { sentenceId, textEn, mode, onReplay, onSelectWord, onAllSolved, onRequestNextSentence },
+    {
+      sentenceId,
+      textEn,
+      mode,
+      onReplay,
+      onSelectWord,
+      onAllSolved,
+      onRequestNextSentence,
+      onRequestHint,
+      onToggleShowAnswer,
+    },
     ref
   ) {
     const words = useMemo(
@@ -244,8 +261,8 @@ export const ParrotoDictationInput = forwardRef<ParrotoInputHandle, ParrotoDicta
         setStatus((prev) => ({ ...prev, [wordIdx]: 'idle' }));
       }
 
-      // Auto-complete & jump immediately when the typed word matches exact length & spelling!
-      if (normalizeCore(incoming) === word.norm && incoming.trim().length >= word.core.length) {
+      // Auto-complete & jump immediately when normalized spelling matches (works smoothly for contractions like "dont" -> "don't"!)
+      if (word.norm.length > 0 && normalizeCore(incoming) === word.norm) {
         const solvedVals = { ...nextVals, [wordIdx]: word.core };
         const nextStatus: Record<number, 'idle' | 'correct' | 'wrong'> = {
           ...status,
@@ -266,6 +283,16 @@ export const ParrotoDictationInput = forwardRef<ParrotoInputHandle, ParrotoDicta
       if (e.key === 'Tab') {
         e.preventDefault();
         onReplay();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        onRequestHint?.();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        onToggleShowAnswer?.();
         return;
       }
       if (e.key === ' ' || e.key === 'Enter') {

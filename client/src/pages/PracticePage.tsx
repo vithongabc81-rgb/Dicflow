@@ -621,6 +621,8 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
                 onReplay={() => playerRef.current?.replaySegment()}
                 onSelectWord={(w) => setSelectedWord(w)}
                 onAllSolved={handleParrotoAllSolved}
+                onRequestHint={handleHint}
+                onToggleShowAnswer={() => setShowAnswer((v) => !v)}
                 onRequestNextSentence={() => {
                   if (currentIndex < sentences.length - 1) {
                     goToSentence(currentIndex + 1, true);

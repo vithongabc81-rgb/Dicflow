@@ -96,6 +96,11 @@ function initSchema() {
       UNIQUE(user_id, word)
     );
 
+    CREATE TABLE IF NOT EXISTS app_meta (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_sentences_lesson ON sentences(lesson_id, seq_index);
     CREATE INDEX IF NOT EXISTS idx_attempts_user ON sentence_attempts(user_id, lesson_id);
     CREATE INDEX IF NOT EXISTS idx_logs_user_date ON practice_logs(user_id, practiced_date);
@@ -106,13 +111,20 @@ function initSchema() {
 function formatDateOffset(daysAgo) {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
-  return d.toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(d);
 }
 
+const SEED_VERSION = 'v2-clean-captions';
+
 function seedDatabase() {
+  const prevSeedVer = db.prepare("SELECT value FROM app_meta WHERE key = 'seed_version'").get()?.value;
+  const forceRefreshOfficial = prevSeedVer !== SEED_VERSION;
+
   // 1. Seed or refresh curated lessons inside a single transaction (super fast for 4,000+ sentences)
   const checkLesson = db.prepare(
-    `SELECT l.id, (SELECT COUNT(*) FROM sentences s WHERE s.lesson_id = l.id) AS sent_count
+    `SELECT l.id,
+       (SELECT COUNT(*) FROM sentences s WHERE s.lesson_id = l.id) AS sent_count,
+       (SELECT s.text_en FROM sentences s WHERE s.lesson_id = l.id ORDER BY s.seq_index ASC LIMIT 1) AS first_text
      FROM lessons l WHERE l.slug = ?`
   );
   const insertLesson = db.prepare(`
@@ -141,8 +153,13 @@ function seedDatabase() {
       const existing = checkLesson.get(lesson.slug);
 
       if (existing) {
-        // Refresh sentences if the official lesson was upgraded to full-length captions
-        if (Number(existing.sent_count) !== lesson.sentences.length) {
+        // Refresh sentences if SEED_VERSION bumped, count changed, or first sentence changed
+        const expectedFirst = lesson.sentences[0]?.text_en || '';
+        if (
+          forceRefreshOfficial ||
+          Number(existing.sent_count) !== lesson.sentences.length ||
+          existing.first_text !== expectedFirst
+        ) {
           updateLessonMeta.run(
             lesson.title,
             lesson.description,
@@ -196,6 +213,9 @@ function seedDatabase() {
         );
       });
     }
+    db.prepare(
+      "INSERT INTO app_meta (key, value) VALUES ('seed_version', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+    ).run(SEED_VERSION);
     db.exec('COMMIT;');
   } catch (err) {
     db.exec('ROLLBACK;');

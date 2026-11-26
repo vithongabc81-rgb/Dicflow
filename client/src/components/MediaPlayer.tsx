@@ -200,10 +200,11 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
       const now = player.getCurrentTime();
       setCurrentTime(now);
       const { startTime: s, endTime: e, loopSegment: loop } = segmentRef.current;
-      if (now >= e - 0.08) {
+      // Add slight +0.18s post-roll so the speaker's final syllable is never clipped
+      if (now >= e + 0.18) {
         if (loop) {
           seekLockUntilRef.current = Date.now() + 500;
-          player.seekTo(s, true);
+          player.seekTo(Math.max(0, s - 0.15), true);
         } else {
           player.pauseVideo();
           setIsPlaying(false);
@@ -264,6 +265,7 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
     setCurrentTime(targetStart);
     seekLockUntilRef.current = Date.now() + 650;
 
+    const seekStart = Math.max(0, targetStart - 0.15);
     const { playbackRate: rate } = segmentRef.current;
     if (effectiveMode === 'audio_tts') {
       playTTSLoop();
@@ -274,7 +276,7 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
       if (p && ytReadyRef.current) {
         try {
           p.setPlaybackRate(rate);
-          p.seekTo(targetStart, true);
+          p.seekTo(seekStart, true);
           p.playVideo();
           setIsPlaying(true);
         } catch {
@@ -286,7 +288,7 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
     const el = htmlMediaRef.current;
     if (el) {
       el.playbackRate = rate;
-      el.currentTime = targetStart;
+      el.currentTime = seekStart;
       el.play().then(() => setIsPlaying(true)).catch(() => {});
     }
   };
@@ -394,10 +396,13 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
   const handleHtmlTimeUpdate = () => {
     const el = htmlMediaRef.current;
     if (!el) return;
+    if (Date.now() < seekLockUntilRef.current) return;
     setCurrentTime(el.currentTime);
-    if (el.currentTime >= endTime - 0.05) {
-      if (loopSegment) {
-        el.currentTime = startTime;
+    const { startTime: s, endTime: e, loopSegment: loop } = segmentRef.current;
+    if (el.currentTime >= e + 0.15) {
+      if (loop) {
+        seekLockUntilRef.current = Date.now() + 450;
+        el.currentTime = Math.max(0, s - 0.15);
         el.play().catch(() => {});
       } else {
         el.pause();

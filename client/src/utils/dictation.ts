@@ -55,13 +55,13 @@ function normalizeWord(word: string): string {
   return word
     .toLowerCase()
     .replace(/[’‘`]/g, "'")
-    .replace(/[^a-z0-9'-]/g, '')
-    .replace(/^'+|'+$/g, '')
+    .replace(/[^a-z0-9]/g, '')
     .trim();
 }
 
 function tokenize(text: string): { raw: string; norm: string }[] {
   return text
+    .replace(/\s*--\s*/g, ' ')
     .replace(/[—–]/g, ' ')
     .split(/\s+/)
     .map((raw) => ({ raw, norm: normalizeWord(raw) }))
