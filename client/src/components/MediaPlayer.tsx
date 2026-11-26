@@ -311,11 +311,76 @@ export const MediaPlayer = forwardRef<MediaPlayerHandle, MediaPlayerProps>(funct
     setIsPlaying(false);
   };
 
+  const pauseAtCurrent = () => {
+    if (effectiveMode === 'audio_tts') {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.pause();
+      }
+      setIsPlaying(false);
+      return;
+    }
+    if (effectiveMode === 'youtube' && ytPlayerRef.current && ytReadyRef.current) {
+      try {
+        ytPlayerRef.current.pauseVideo();
+      } catch {
+        // ignore
+      }
+    }
+    if (htmlMediaRef.current) {
+      htmlMediaRef.current.pause();
+    }
+    setIsPlaying(false);
+  };
+
+  const resumeOrPlay = () => {
+    const { startTime: s, endTime: e, playbackRate: rate, sentenceText: txt } = segmentRef.current;
+
+    if (effectiveMode === 'audio_tts') {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window && window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+        setIsPlaying(true);
+      } else {
+        playTTSLoop();
+      }
+      return;
+    }
+
+    if (effectiveMode === 'youtube') {
+      const p = ytPlayerRef.current;
+      if (p && ytReadyRef.current) {
+        try {
+          p.setPlaybackRate(rate);
+          const now = typeof p.getCurrentTime === 'function' ? p.getCurrentTime() : -1;
+          // If paused mid-sentence, resume right from that exact spot without seeking back!
+          if (now >= s - 0.5 && now < e - 0.2) {
+            p.playVideo();
+            setIsPlaying(true);
+          } else {
+            playSegment(s, e, txt);
+          }
+        } catch {
+          playSegment(s, e, txt);
+        }
+      }
+      return;
+    }
+
+    const el = htmlMediaRef.current;
+    if (el) {
+      el.playbackRate = rate;
+      if (el.currentTime >= s - 0.3 && el.currentTime < e - 0.2) {
+        el.play().then(() => setIsPlaying(true)).catch(() => {});
+      } else {
+        playSegment(s, e, txt);
+      }
+    }
+  };
+
   const togglePlay = () => {
     if (isPlaying) {
-      stop();
+      pauseAtCurrent();
     } else {
-      replaySegment();
+      resumeOrPlay();
     }
   };
 

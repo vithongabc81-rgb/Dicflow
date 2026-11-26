@@ -552,7 +552,7 @@ export function PracticePage({ lessonId, onBack, onOpenMistakes }: PracticePageP
                 ) : (
                   <Play className="w-4 h-4 shrink-0" />
                 )}
-                <span>{isMediaPlaying ? 'Tạm dừng' : 'Phát'}</span>
+                <span>{isMediaPlaying ? 'Tạm dừng' : 'Phát tiếp'}</span>
               </button>
 
               <button
